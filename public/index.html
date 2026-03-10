@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Job Hunter — Job Curator</title>
+  <title>Job Hunter — AI Resume Matcher</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
@@ -563,7 +563,7 @@
       </select>
       <select class="tb-sel" id="j-type">
         <option value="all">🌍 All Types</option>
-        <option value="remote">🌐 Remote</option>
+        <option value="us_remote">🌐 US Remote</option>
         <option value="hybrid">🔀 Hybrid</option>
         <option value="onsite">🏢 On-site</option>
       </select>
@@ -577,9 +577,11 @@
       <select class="tb-sel" id="j-loc">
         <option value="all">🗺 All Locations</option>
         <option value="local">📍 My State</option>
-        <option value="remote">🌐 Remote</option>
-        <option value="national">🇺🇸 Other US</option>
-        <option value="international">🌍 International</option>
+        <option value="us_remote">🌐 US Remote</option>
+        <option value="us_national">🇺🇸 Other US</option>
+        <option value="latam">🌎 LATAM</option>
+        <option value="europe">🇪🇺 Europe</option>
+        <option value="international">🌍 Other International</option>
       </select>
       <span class="tb-count" id="j-count"></span>
     </div>
@@ -834,8 +836,20 @@ async function fetchJobs() {
     S.jobs = data.jobs || [];
     S.finalProfile = data.profile || S.finalProfile;
     updateStats();
-    renderJobs();
-    if (S.userEmail) {
+
+    if (S.jobs.length === 0) {
+      const diag = data.sourceDiagnostics || [];
+      const working = diag.filter(d => d.ok && d.count > 0);
+      const failed  = diag.filter(d => !d.ok);
+      const empty   = diag.filter(d => d.ok && d.count === 0);
+      const workingHtml = working.length ? `<p style="color:var(--green);font-size:13px;margin-bottom:8px">✅ Sources with data (${working.reduce((a,d)=>a+d.count,0)} raw jobs, scored below threshold):</p><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">${working.map(d=>`<span style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--green)">${d.source}: ${d.count}</span>`).join("")}</div>` : "";
+      const failedHtml = failed.length ? `<p style="color:var(--red);font-size:13px;margin-bottom:8px">❌ Sources that failed:</p><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">${failed.map(d=>`<span style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);border-radius:6px;padding:3px 10px;font-size:12px;color:var(--red)">${d.source}: ${d.error}</span>`).join("")}</div>` : "";
+      document.getElementById("jobs-grid").innerHTML = `<div class="empty-st" style="grid-column:1/-1;text-align:left;max-width:600px;margin:0 auto"><div class="ei" style="text-align:center">🔍</div><p style="text-align:center;margin-bottom:20px;color:var(--txt2)">No jobs matched this time. Here is what happened:</p>${workingHtml}${failedHtml}<p style="font-size:12px;color:var(--txt3);margin-top:16px;text-align:center">${working.length > 0 ? "Jobs were found but scored below 1 star — the profile skills/titles may need broadening." : "All job sources failed — likely a temporary network issue. Please try again in a minute."}</p></div>`;
+    } else {
+      renderJobs();
+    }
+
+    if (S.userEmail && S.jobs.length > 0) {
       document.getElementById("email-banner-txt").textContent = `Results also sent to ${S.userEmail}`;
       document.getElementById("email-banner").classList.add("on");
     }
@@ -848,7 +862,7 @@ async function fetchJobs() {
 function updateStats() {
   const j = S.jobs;
   const local  = j.filter(x=>x.score?.locationTier==="local").length;
-  const remote = j.filter(x=>x.score?.locationTier==="remote").length;
+  const remote = j.filter(x=>x.score?.locationTier==="us_remote").length;
   const top    = j.filter(x=>(x.score?.stars||0)>=4).length;
   document.getElementById("stat-row").innerHTML = `
     <div class="stat-pill"><strong>${j.length}</strong> Total</div>
@@ -903,8 +917,8 @@ function renderJobs() {
   if (sort==="location") {
     const secs=[
       {tier:"local",        label:`📍 Local — ${S.finalProfile?.state||"Your State"}`},
-      {tier:"remote",       label:"🌐 Remote"},
-      {tier:"national",     label:"🇺🇸 Other US States"},
+      {tier:"us_remote", label:"🌐 US Remote"},
+      {tier:"us_national", label:"🇺🇸 Other US States"},
       {tier:"international",label:"🌍 International"},
     ];
     let idx=0;
@@ -930,9 +944,12 @@ function jCard(job, idx) {
 
   const tierTag = {
     local:        `<span class="jtag jt-local">📍 Local</span>`,
-    remote:       `<span class="jtag jt-remote">🌐 Remote</span>`,
-    national:     `<span class="jtag jt-national">🇺🇸 National</span>`,
-    international:`<span class="jtag jt-intl">🌍 Intl</span>`,
+    us_remote: `<span class="jtag jt-remote">🌐 US Remote</span>`,
+    remote: `<span class="jtag jt-remote">🌐 Remote</span>`,
+    us_national: `<span class="jtag jt-national">🇺🇸 US National</span>`,
+    latam: `<span class="jtag" style="background:rgba(34,197,94,.1);color:#4ade80;">🌎 LATAM</span>`,
+    europe: `<span class="jtag" style="background:rgba(59,130,246,.1);color:#60a5fa;">🇪🇺 Europe</span>`,
+    international: `<span class="jtag jt-intl">🌍 Intl</span>`,
   }[tier]||"";
 
   const typeTag = (()=>{
