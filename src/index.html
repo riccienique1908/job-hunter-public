@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Hunter — AI Resume Matcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Tokens ──────────────────────────────────────────────── */
+    :root {
+      --bg:       #070910;
+      --s1:       #0e1118;
+      --s2:       #141824;
+      --s3:       #1a1f30;
+      --border:   rgba(255,255,255,0.07);
+      --bhi:      rgba(255,255,255,0.13);
+      --txt:      #dde3f5;
+      --txt2:     #7b84a0;
+      --txt3:     #3d4560;
+      --blue:     #4f79e8;
+      --purple:   #7c5af4;
+      --green:    #22c55e;
+      --yellow:   #f0b429;
+      --red:      #f87171;
+      --r:        14px;
+      --rs:       10px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--txt); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    h1,h2,h3 { font-family: 'Syne', sans-serif; }
+
+    /* ── Pages ───────────────────────────────────────────────── */
+    .pg { display: none; }
+    .pg.on { display: block; }
+
+    /* ── Header ──────────────────────────────────────────────── */
+    .hdr {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(7,9,16,.88); backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+    }
+    .hdr-in {
+      max-width: 1080px; margin: 0 auto;
+      height: 58px; padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 9px; text-decoration: none; }
+    .logo-dot {
+      width: 32px; height: 32px; border-radius: 9px;
+      background: linear-gradient(135deg,#1a3470,var(--blue));
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .logo-txt { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: var(--txt); }
+    .logo-txt em { color: var(--blue); font-style: normal; }
+
+    .steps { display: flex; align-items: center; gap: 4px; }
+    .step {
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; color: var(--txt3);
+      font-family: 'JetBrains Mono', monospace; letter-spacing: .3px;
+      transition: all .2s;
+    }
+    .step.done   { color: var(--green);  background: rgba(34,197,94,.1); }
+    .step.active { color: var(--blue);   background: rgba(79,121,232,.13); }
+    .step-arr { color: var(--txt3); font-size: 13px; }
+
+    /* ── Hero / Upload ───────────────────────────────────────── */
+    .upload-pg {
+      min-height: calc(100vh - 58px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 40px 20px; position: relative; overflow: hidden;
+    }
+    .glow {
+      position: absolute; pointer-events: none;
+      border-radius: 50%; filter: blur(80px); opacity: .15;
+    }
+    .glow-1 { width: 600px; height: 400px; background: var(--blue); top: -100px; left: 50%; transform: translateX(-50%); }
+    .glow-2 { width: 300px; height: 300px; background: var(--purple); bottom: 50px; right: 50px; }
+
+    .upload-box { max-width: 520px; width: 100%; position: relative; z-index: 1; text-align: center; }
+    .ai-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(79,121,232,.1); border: 1px solid rgba(79,121,232,.25);
+      border-radius: 100px; padding: 5px 14px;
+      font-size: 11px; font-weight: 600; color: #93c5fd; letter-spacing: .5px;
+      text-transform: uppercase; margin-bottom: 24px;
+    }
+    .upload-h1 {
+      font-size: clamp(28px, 5.5vw, 46px);
+      font-weight: 800; letter-spacing: -1.5px; color: #fff; line-height: 1.12;
+      margin-bottom: 14px;
+    }
+    .upload-h1 .hi {
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .upload-sub { font-size: 15px; color: var(--txt2); line-height: 1.65; margin-bottom: 36px; }
+
+    /* Drop zone */
+    .dropzone {
+      border: 2px dashed var(--bhi); border-radius: var(--r);
+      background: var(--s1); padding: 36px 28px; cursor: pointer;
+      transition: border-color .2s, background .2s; position: relative;
+    }
+    .dropzone.over, .dropzone:hover { border-color: var(--blue); background: rgba(79,121,232,.05); }
+    .dz-input { display: none; }
+    .dz-icon { font-size: 34px; margin-bottom: 12px; }
+    .dz-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .dz-sub { font-size: 13px; color: var(--txt2); }
+    .dz-sub b { color: var(--blue); cursor: pointer; font-weight: 600; }
+    .dz-sub b:hover { text-decoration: underline; }
+
+    .file-chip {
+      display: none; align-items: center; gap: 10px;
+      background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.2);
+      border-radius: var(--rs); padding: 11px 14px; margin-top: 14px; text-align: left;
+    }
+    .file-chip.on { display: flex; }
+    .fc-name { font-size: 13px; font-weight: 600; color: var(--green); }
+    .fc-size { font-size: 11px; color: var(--txt2); }
+
+    /* Email opt-in */
+    .email-row {
+      display: flex; gap: 8px; margin-top: 14px;
+    }
+    .email-input {
+      flex: 1;
+      background: var(--s2); border: 1px solid var(--border);
+      border-radius: var(--rs); padding: 11px 14px;
+      color: var(--txt); font-size: 13px; font-family: 'Inter', sans-serif;
+      outline: none; transition: border-color .2s;
+    }
+    .email-input:focus { border-color: var(--blue); }
+    .email-input::placeholder { color: var(--txt3); }
+
+    /* CTA button */
+    .cta {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; margin-top: 14px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: #fff; border: none; border-radius: var(--rs);
+      padding: 14px 24px; font-size: 15px; font-weight: 700;
+      font-family: 'Syne', sans-serif; cursor: pointer;
+      transition: opacity .2s, transform .15s;
+      box-shadow: 0 4px 24px rgba(79,121,232,.3);
+    }
+    .cta:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+    .cta:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    /* Progress */
+    .prog-wrap { display: none; margin-top: 14px; }
+    .prog-wrap.on { display: block; }
+    .prog-track { height: 3px; background: var(--s3); border-radius: 3px; overflow: hidden; }
+    .prog-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+      border-radius: 3px; transition: width .4s ease;
+    }
+    .prog-lbl { font-size: 12px; color: var(--txt2); text-align: center; margin-top: 8px; font-family: 'JetBrains Mono', monospace; }
+
+    /* Features */
+    .feats { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 28px; }
+    .feat {
+      flex: 1; min-width: 110px; max-width: 140px;
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: var(--rs); padding: 14px 12px; text-align: center;
+    }
+    .feat-i { font-size: 20px; margin-bottom: 7px; }
+    .feat-t { font-size: 11px; font-weight: 600; color: var(--txt); font-family: 'Syne', sans-serif; }
+    .feat-s { font-size: 10px; color: var(--txt2); margin-top: 3px; }
+
+    /* Error banner */
+    .err {
+      display: none; background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.2);
+      border-radius: var(--rs); padding: 12px 16px;
+      font-size: 13px; color: var(--red); margin-top: 12px;
+    }
+    .err.on { display: block; }
+
+    /* ── Questions page ──────────────────────────────────────── */
+    .q-pg { max-width: 660px; margin: 0 auto; padding: 44px 20px; }
+    .pg-hdr { margin-bottom: 28px; }
+    .pg-hdr h2 { font-size: 22px; font-weight: 800; margin-bottom: 7px; }
+    .pg-hdr p  { font-size: 14px; color: var(--txt2); line-height: 1.6; }
+
+    .prof-peek {
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: var(--rs); padding: 15px 18px;
+      display: flex; gap: 12px; align-items: center;
+      flex-wrap: wrap; margin-bottom: 24px;
+    }
+    .peek-av {
+      width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .peek-name { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; }
+    .peek-meta { font-size: 12px; color: var(--txt2); margin-top: 2px; }
+
+    .q-card {
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: var(--rs); padding: 18px 20px; margin-bottom: 12px;
+      transition: border-color .2s;
+    }
+    .q-card:focus-within { border-color: var(--blue); }
+    .q-lbl { font-size: 14px; font-weight: 600; margin-bottom: 13px; }
+    .q-num { color: var(--blue); margin-right: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+    .opts { display: flex; flex-wrap: wrap; gap: 7px; }
+    .opt {
+      padding: 7px 14px; background: var(--s2); border: 1px solid var(--border);
+      border-radius: 8px; font-size: 12px; font-weight: 500; color: var(--txt2);
+      cursor: pointer; transition: all .15s; font-family: 'Inter', sans-serif;
+    }
+    .opt:hover { border-color: var(--blue); color: var(--txt); }
+    .opt.sel  { background: rgba(79,121,232,.14); border-color: var(--blue); color: var(--txt); }
+
+    .q-inp {
+      width: 100%; background: var(--s2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 13px;
+      color: var(--txt); font-size: 13px; font-family: 'Inter', sans-serif;
+      outline: none; transition: border-color .2s;
+    }
+    .q-inp:focus { border-color: var(--blue); }
+
+    /* ── Summary page ────────────────────────────────────────── */
+    .sum-pg { max-width: 900px; margin: 0 auto; padding: 44px 20px 60px; }
+
+    .prof-card {
+      background: linear-gradient(135deg, var(--s1), var(--s2));
+      border: 1px solid var(--bhi); border-radius: var(--r);
+      padding: 28px; display: flex; gap: 20px; align-items: flex-start;
+      flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .prof-av {
+      width: 68px; height: 68px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg,#1a3470, var(--blue));
+      display: flex; align-items: center; justify-content: center; font-size: 28px;
+    }
+    .prof-name { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .prof-role { font-size: 13px; font-weight: 600; color: var(--blue); margin-bottom: 10px; }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 7px; }
+    .tag {
+      padding: 4px 11px; border-radius: 100px; font-size: 11px; font-weight: 600;
+      background: var(--s2); border: 1px solid var(--border); color: var(--txt2);
+    }
+    .tag.b { background: rgba(79,121,232,.1); border-color: rgba(79,121,232,.25); color: var(--blue); }
+    .tag.g { background: rgba(34,197,94,.1);  border-color: rgba(34,197,94,.25);  color: var(--green); }
+
+    .sum-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+    @media (max-width:580px) { .sum-grid { grid-template-columns: 1fr; } }
+
+    .scard {
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: var(--rs); padding: 18px;
+    }
+    .scard-ttl {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--txt3); margin-bottom: 13px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      padding: 3px 9px; background: var(--s2); border: 1px solid var(--border);
+      border-radius: 6px; font-size: 11px; color: var(--txt2);
+    }
+    .chip.hi { background: rgba(79,121,232,.08); border-color: rgba(79,121,232,.18); color: #93c5fd; }
+
+    .info-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .info-row:last-child { border-bottom: none; }
+    .il { color: var(--txt2); }
+    .iv { font-weight: 600; color: var(--txt); text-align: right; }
+
+    .sum-quote {
+      background: var(--s2); border-left: 3px solid var(--blue);
+      border-radius: 0 var(--rs) var(--rs) 0;
+      padding: 13px 16px; font-size: 13px; color: var(--txt2);
+      line-height: 1.7; font-style: italic; margin-bottom: 20px;
+    }
+
+    .find-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      color: #fff; border: none; border-radius: var(--rs);
+      padding: 16px 24px; font-size: 16px; font-weight: 800;
+      font-family: 'Syne', sans-serif; cursor: pointer;
+      transition: opacity .2s, transform .15s;
+      box-shadow: 0 4px 28px rgba(79,121,232,.35);
+    }
+    .find-btn:hover:not(:disabled) { opacity: .9; transform: translateY(-2px); }
+    .find-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .restart-btn {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--txt2); border-radius: var(--rs);
+      padding: 9px 18px; font-size: 12px; font-family: 'Inter', sans-serif;
+      cursor: pointer; transition: all .2s; display: block; margin: 14px auto 0;
+    }
+    .restart-btn:hover { border-color: var(--bhi); color: var(--txt); }
+
+    /* ── Jobs page ───────────────────────────────────────────── */
+    .jobs-hero {
+      background: linear-gradient(160deg, #0c1020 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 36px 24px 28px; text-align: center; position: relative; overflow: hidden;
+    }
+    .jobs-hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 60% 50% at 50% -10%, rgba(79,121,232,.12), transparent);
+    }
+    .jobs-hero h2 { font-size: 22px; font-weight: 800; margin-bottom: 5px; position: relative; }
+    .jobs-hero p  { font-size: 13px; color: var(--txt2); position: relative; }
+    .stat-row { display: flex; justify-content: center; gap: 9px; flex-wrap: wrap; margin-top: 14px; position: relative; }
+    .stat-pill {
+      display: flex; align-items: center; gap: 7px;
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: 100px; padding: 5px 14px; font-size: 12px; font-weight: 500;
+    }
+    .stat-pill strong { font-size: 15px; font-family: 'Syne', sans-serif; }
+
+    /* Email send banner */
+    .email-sent-banner {
+      display: none; max-width: 1080px; margin: 14px auto 0; padding: 0 24px;
+    }
+    .email-sent-banner.on { display: block; }
+    .esb-inner {
+      background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.2);
+      border-radius: var(--rs); padding: 12px 18px;
+      font-size: 13px; color: var(--green); display: flex; align-items: center; gap: 8px;
+    }
+
+    .jobs-body { max-width: 1080px; margin: 0 auto; padding: 0 24px 60px; }
+
+    /* toolbar */
+    .toolbar { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; padding: 18px 0 0; }
+    .tb-search { position: relative; flex: 1; min-width: 200px; }
+    .tb-search-ico { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--txt3); font-size: 14px; pointer-events: none; }
+    .tb-inp {
+      width: 100%; background: var(--s1); border: 1px solid var(--border);
+      border-radius: var(--rs); padding: 9px 11px 9px 33px;
+      color: var(--txt); font-size: 13px; font-family: 'Inter', sans-serif;
+      outline: none; transition: border-color .2s;
+    }
+    .tb-inp:focus { border-color: var(--blue); }
+    .tb-inp::placeholder { color: var(--txt3); }
+    .tb-sel {
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: var(--rs); padding: 9px 28px 9px 11px;
+      color: var(--txt); font-size: 12px; font-family: 'Inter', sans-serif;
+      outline: none; cursor: pointer; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%237b84a0' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 9px center;
+      transition: border-color .2s; white-space: nowrap;
+    }
+    .tb-sel:focus { border-color: var(--blue); }
+    .tb-count { font-size: 11px; color: var(--txt2); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+
+    /* grid */
+    .jobs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(308px,1fr)); gap: 14px; padding-top: 18px; }
+
+    .jcard {
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 18px;
+      display: flex; flex-direction: column; gap: 11px;
+      transition: transform .2s, border-color .2s, box-shadow .2s;
+      position: relative; overflow: hidden;
+    }
+    .jcard::before {
+      content: ''; position: absolute; top:0; left:0; right:0; height: 3px;
+      border-radius: var(--r) var(--r) 0 0; opacity: 0; transition: opacity .2s;
+    }
+    .jcard:hover { transform: translateY(-2px); border-color: var(--bhi); box-shadow: 0 8px 32px rgba(0,0,0,.4); }
+    .jcard:hover::before { opacity: 1; }
+    .jcard[data-stars="5"]::before { background: linear-gradient(90deg,#22c55e,#84cc16); }
+    .jcard[data-stars="4"]::before { background: linear-gradient(90deg,#84cc16,#eab308); }
+    .jcard[data-stars="3"]::before { background: linear-gradient(90deg,#eab308,#f97316); }
+    .jcard[data-stars="2"]::before { background: linear-gradient(90deg,#f97316,var(--red)); }
+    .jcard[data-stars="1"]::before { background: var(--red); }
+
+    .jc-top { display: flex; gap: 9px; justify-content: space-between; align-items: flex-start; }
+    .jc-tg { flex: 1; min-width: 0; }
+    .jc-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 3px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .jc-co { font-size: 12px; color: var(--txt2); }
+    .mbadge { flex-shrink: 0; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 3px 8px; border-radius: 100px; white-space: nowrap; }
+    .m5 { background: rgba(34,197,94,.14); color: #22c55e; }
+    .m4 { background: rgba(132,204,22,.14); color: #84cc16; }
+    .m3 { background: rgba(240,180,41,.14); color: var(--yellow); }
+    .m2 { background: rgba(249,115,22,.14); color: #f97316; }
+    .m1 { background: rgba(248,113,113,.14); color: var(--red); }
+
+    .jc-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+    .jtag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+    .jt-local    { background: rgba(34,197,94,.12); color: var(--green); }
+    .jt-remote   { background: rgba(79,121,232,.12); color: var(--blue); }
+    .jt-national { background: rgba(240,180,41,.1);  color: var(--yellow); }
+    .jt-intl     { background: rgba(107,114,128,.1); color: #9ca3af; }
+    .jt-hybrid   { background: rgba(124,106,244,.12); color: var(--purple); }
+    .jt-src      { color: #fff; font-weight: 700; }
+
+    .jc-stars { display: flex; align-items: flex-start; flex-direction: column; gap: 3px; }
+    .star-row { display: flex; gap: 2px; }
+    .star { font-size: 12px; }
+    .sf { color: var(--yellow); filter: drop-shadow(0 0 3px rgba(240,180,41,.5)); }
+    .se { color: var(--txt3); }
+    .star-why { font-size: 10px; color: var(--txt3); font-style: italic; }
+
+    .jc-desc { font-size: 12px; color: var(--txt2); line-height: 1.6; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+    .jc-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); margin-top: auto; }
+    .jc-date { font-size: 10px; color: var(--txt3); font-family: 'JetBrains Mono', monospace; }
+    .apply {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--blue); color: #fff; text-decoration: none;
+      padding: 6px 12px; border-radius: 7px; font-size: 11px; font-weight: 700;
+      font-family: 'Syne', sans-serif; transition: background .15s, transform .1s;
+    }
+    .apply:hover { background: #3d66d4; transform: scale(1.02); }
+
+    /* Section dividers */
+    .sec-div { grid-column: 1/-1; display: flex; align-items: center; gap: 12px; padding: 6px 0 2px; }
+    .sec-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--txt3); white-space: nowrap; font-family: 'JetBrains Mono', monospace; }
+    .sec-line { flex: 1; border: none; border-top: 1px solid var(--border); }
+
+    .empty-st { grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--txt3); }
+    .empty-st .ei { font-size:34px; margin-bottom:12px; }
+    .loading-st { grid-column:1/-1; display:flex; flex-direction:column; align-items:center; gap:14px; padding:60px 20px; }
+    .spin { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--blue); border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin-lbl { font-size:13px; color:var(--txt2); font-family:'JetBrains Mono', monospace; }
+
+    /* Animations */
+    @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+    .jcard { animation: fadeUp .25s ease both; }
+
+    @media (max-width:620px) {
+      .steps { display: none; }
+      .jobs-hero { padding: 28px 16px 22px; }
+      .jobs-body { padding: 0 16px 48px; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .jobs-grid { grid-template-columns: 1fr; }
+      .sum-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-in">
+    <a href="/" class="logo"><div class="logo-dot">🎯</div><span class="logo-txt">Job<em>Hunter</em></span></a>
+    <div class="steps">
+      <span class="step" id="s1">01 Upload</span>
+      <span class="step-arr">›</span>
+      <span class="step" id="s2">02 Questions</span>
+      <span class="step-arr">›</span>
+      <span class="step" id="s3">03 Profile</span>
+      <span class="step-arr">›</span>
+      <span class="step" id="s4">04 Jobs</span>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════════════════════ PAGE 1 — Upload -->
+<div class="pg on" id="pg-upload">
+  <div class="upload-pg">
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+    <div class="upload-box">
+      <div class="ai-badge">✦ Google Gemini AI</div>
+      <h1 class="upload-h1">Get jobs that<br><span class="hi">match your resume</span></h1>
+      <p class="upload-sub">Upload your resume, answer 5 quick questions, and we'll find the most relevant QA jobs — ranked by match score, prioritizing your local area first.</p>
+
+      <div class="dropzone" id="dz">
+        <input type="file" id="fi" accept=".pdf,.txt" class="dz-input" />
+        <div class="dz-icon">📄</div>
+        <div class="dz-title">Drop your resume here</div>
+        <div class="dz-sub">PDF or TXT &nbsp;·&nbsp; <b id="browse">click to browse</b></div>
+      </div>
+
+      <div class="file-chip" id="fc">
+        <span style="font-size:20px">✅</span>
+        <div><div class="fc-name" id="fc-name"></div><div class="fc-size" id="fc-size"></div></div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <label style="font-size:12px;color:var(--txt2);display:block;margin-bottom:6px;">📧 Email me the results too <span style="color:var(--txt3)">(optional)</span></label>
+        <input type="email" class="email-input" id="user-email" placeholder="your@email.com" autocomplete="email" />
+      </div>
+
+      <div class="err" id="up-err"></div>
+      <button class="cta" id="analyze-btn" disabled>
+        <span>🔍</span> Analyze Resume with AI
+      </button>
+      <div class="prog-wrap" id="prog">
+        <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+        <div class="prog-lbl" id="prog-lbl">Reading resume…</div>
+      </div>
+
+      <div class="feats">
+        <div class="feat"><div class="feat-i">🧠</div><div class="feat-t">AI Analysis</div><div class="feat-s">Gemini reads resume</div></div>
+        <div class="feat"><div class="feat-i">📍</div><div class="feat-t">Local First</div><div class="feat-s">Your state → remote → national</div></div>
+        <div class="feat"><div class="feat-i">⭐</div><div class="feat-t">Match Score</div><div class="feat-s">1–5 star rating</div></div>
+        <div class="feat"><div class="feat-i">📧</div><div class="feat-t">Email Digest</div><div class="feat-s">Get results in your inbox</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ PAGE 2 — Questions -->
+<div class="pg" id="pg-questions">
+  <div class="q-pg">
+    <div class="pg-hdr">
+      <h2>✍️ Quick profile check</h2>
+      <p>We read your resume — just confirm a few details so job matches are accurate and location-aware.</p>
+    </div>
+    <div class="prof-peek" id="prof-peek"></div>
+    <div id="q-container"></div>
+    <div class="err" id="q-err"></div>
+    <button class="cta" id="submit-q-btn" style="margin-top:8px;">
+      <span>👤</span> Build Profile &amp; Find Jobs
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ PAGE 3 — Summary -->
+<div class="pg" id="pg-summary">
+  <div class="sum-pg">
+    <div class="pg-hdr">
+      <h2>👤 Your Profile</h2>
+      <p>Review what we built from your resume + answers before we start searching.</p>
+    </div>
+    <div id="sum-content"></div>
+    <button class="find-btn" id="find-btn"><span>🚀</span> Find My Jobs Now</button>
+    <button class="restart-btn" id="restart-sum">← Upload a different resume</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ PAGE 4 — Jobs -->
+<div class="pg" id="pg-jobs">
+  <div class="jobs-hero">
+    <h2 id="jh-title">🎯 Your Curated Jobs</h2>
+    <p id="jh-sub">Personalized · location-first · scored by match</p>
+    <div class="stat-row" id="stat-row"></div>
+  </div>
+
+  <div class="email-sent-banner" id="email-banner">
+    <div class="esb-inner">📧 <span id="email-banner-txt">Results also sent to your email!</span></div>
+  </div>
+
+  <div class="jobs-body">
+    <div class="toolbar">
+      <div class="tb-search">
+        <span class="tb-search-ico">🔍</span>
+        <input type="search" class="tb-inp" id="j-search" placeholder="Search title, company, skills…" />
+      </div>
+      <select class="tb-sel" id="j-sort">
+        <option value="location">📍 Location First</option>
+        <option value="score">⭐ Best Match</option>
+        <option value="date">📅 Newest</option>
+        <option value="title">🔤 Title A–Z</option>
+      </select>
+      <select class="tb-sel" id="j-type">
+        <option value="all">🌍 All Types</option>
+        <option value="us_remote">🌐 US Remote</option>
+        <option value="hybrid">🔀 Hybrid</option>
+        <option value="onsite">🏢 On-site</option>
+      </select>
+      <select class="tb-sel" id="j-stars">
+        <option value="all">⭐ All Scores</option>
+        <option value="5">★★★★★ Perfect</option>
+        <option value="4">★★★★☆ Strong</option>
+        <option value="3">★★★☆☆ Good</option>
+        <option value="2">★★☆☆☆ Partial</option>
+      </select>
+      <select class="tb-sel" id="j-loc">
+        <option value="all">🗺 All Locations</option>
+        <option value="local">📍 My State</option>
+        <option value="us_remote">🌐 US Remote</option>
+        <option value="us_national">🇺🇸 Other US</option>
+        <option value="latam">🌎 LATAM</option>
+        <option value="europe">🇪🇺 Europe</option>
+        <option value="international">🌍 Other International</option>
+      </select>
+      <span class="tb-count" id="j-count"></span>
+    </div>
+    <div class="jobs-grid" id="jobs-grid">
+      <div class="loading-st">
+        <div class="spin"></div>
+        <div class="spin-lbl" id="spin-lbl">Initializing search…</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:28px;">
+      <button class="restart-btn" id="restart-jobs">← Analyze a new resume</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ Script -->
+<script>
+const MATCH_LABELS = {5:"Perfect",4:"Strong",3:"Good",2:"Partial",1:"Low"};
+const SRC_COLORS = {
+  LinkedIn:"#0077b5",Indeed:"#003A9B",Remotive:"#6366f1",
+  "The Muse":"#ef4444",Arbeitnow:"#10b981",RemoteOK:"#c4c9d6",
+  WeWorkRemotely:"#4a90d9",ZipRecruiter:"#00b140",
+};
+
+let S = { file:null, profile:null, questions:[], answers:{}, finalProfile:null, jobs:[], userEmail:"" };
+
+// ── Page navigation ──────────────────────────────────────────
+function goTo(id) {
+  document.querySelectorAll(".pg").forEach(p => p.classList.remove("on"));
+  document.getElementById("pg-"+id).classList.add("on");
+  window.scrollTo({ top:0, behavior:"smooth" });
+  const order = { upload:1, questions:2, summary:3, jobs:4 };
+  const n = order[id];
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById("s"+i);
+    el.className = "step" + (i<n?" done":i===n?" active":"");
+  });
+}
+
+// ── Upload ───────────────────────────────────────────────────
+const dz = document.getElementById("dz");
+const fi = document.getElementById("fi");
+
+document.getElementById("browse").onclick = () => fi.click();
+dz.addEventListener("click", e => { if(e.target.id!=="browse") fi.click(); });
+dz.addEventListener("dragover",  e => { e.preventDefault(); dz.classList.add("over"); });
+dz.addEventListener("dragleave", () => dz.classList.remove("over"));
+dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("over"); if(e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]); });
+fi.addEventListener("change", () => { if(fi.files[0]) setFile(fi.files[0]); });
+
+function setFile(f) {
+  if (!f.name.match(/\.(pdf|txt)$/i)) { showErr("up-err","Only PDF and TXT files are accepted."); return; }
+  S.file = f;
+  document.getElementById("fc-name").textContent = f.name;
+  document.getElementById("fc-size").textContent = fmtBytes(f.size);
+  document.getElementById("fc").classList.add("on");
+  document.getElementById("analyze-btn").disabled = false;
+  hideErr("up-err");
+}
+
+document.getElementById("analyze-btn").addEventListener("click", async () => {
+  if (!S.file) return;
+  S.userEmail = document.getElementById("user-email").value.trim();
+  document.getElementById("analyze-btn").disabled = true;
+  showProg("Reading resume…", 10);
+
+  try {
+    const fd = new FormData();
+    fd.append("resume", S.file);
+
+    setProg(40,"Calling Gemini AI…");
+    const res = await fetch("/api/analyze", { method:"POST", body:fd });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error||"Analysis failed"); }
+
+    setProg(85,"Building profile…");
+    const data = await res.json();
+    S.profile   = data.profile;
+    S.questions = data.questions || [];
+    setProg(100,"Done!");
+
+    setTimeout(() => {
+      hideProg();
+      document.getElementById("analyze-btn").disabled = false;
+      buildQPage();
+      goTo("questions");
+    }, 350);
+  } catch(err) {
+    hideProg();
+    document.getElementById("analyze-btn").disabled = false;
+    showErr("up-err", err.message);
+  }
+});
+
+function showProg(lbl, pct) { document.getElementById("prog").classList.add("on"); setProg(pct,lbl); }
+function setProg(pct,lbl)   { document.getElementById("prog-fill").style.width=pct+"%"; document.getElementById("prog-lbl").textContent=lbl; }
+function hideProg()         { document.getElementById("prog").classList.remove("on"); }
+
+// ── Questions page ───────────────────────────────────────────
+function buildQPage() {
+  const p = S.profile;
+  document.getElementById("prof-peek").innerHTML = `
+    <div class="peek-av">👤</div>
+    <div>
+      <div class="peek-name">${esc(p.name||"Your Profile")}</div>
+      <div class="peek-meta">${esc(p.titles?.[0]||"")} · ${p.experienceYears||"?"} yrs · ${esc(p.location||"US")}</div>
+    </div>`;
+
+  const c = document.getElementById("q-container");
+  c.innerHTML = "";
+  S.answers = {};
+
+  S.questions.forEach((q,i) => {
+    const card = document.createElement("div");
+    card.className = "q-card";
+    card.innerHTML = `<div class="q-lbl"><span class="q-num">${i+1}.</span>${esc(q.question)}</div>`;
+
+    if (q.type === "text") {
+      const inp = document.createElement("input");
+      inp.type = "text"; inp.className = "q-inp"; inp.placeholder = "Type your answer…";
+      inp.addEventListener("input", () => S.answers[q.id] = inp.value);
+      card.appendChild(inp);
+    } else {
+      const div = document.createElement("div");
+      div.className = "opts";
+      const sel = new Set();
+      const isMulti = q.type === "multi";
+      (q.options||[]).forEach(opt => {
+        const btn = document.createElement("button");
+        btn.className = "opt"; btn.textContent = opt;
+        btn.addEventListener("click", () => {
+          if (isMulti) {
+            sel.has(opt) ? sel.delete(opt) : sel.add(opt);
+            btn.classList.toggle("sel", sel.has(opt));
+            S.answers[q.id] = [...sel];
+          } else {
+            div.querySelectorAll(".opt").forEach(b=>b.classList.remove("sel"));
+            btn.classList.add("sel");
+            S.answers[q.id] = opt;
+          }
+        });
+        div.appendChild(btn);
+      });
+      card.appendChild(div);
+    }
+    c.appendChild(card);
+  });
+}
+
+document.getElementById("submit-q-btn").addEventListener("click", () => {
+  S.finalProfile = applyAnswers(S.profile, S.answers);
+  buildSummaryPage(S.finalProfile);
+  goTo("summary");
+});
+
+function applyAnswers(profile, answers) {
+  const p = {...profile};
+  S.questions.forEach((q, i) => {
+    const val = answers[q.id];
+    if (!val) return;
+    const v = Array.isArray(val) ? val.join(", ") : String(val).trim();
+    const qt = q.question.toLowerCase();
+    if (qt.includes("work type") || qt.includes("remote") || /remote|hybrid|on.?site/i.test(v)) {
+      p.workPreference = v;
+    } else if (qt.includes("title") || qt.includes("role")) {
+      p.targetTitles = [...new Set([...(p.targetTitles||[]), ...v.split(/[,\/]/).map(s=>s.trim())])];
+    } else if (qt.includes("state") || qt.includes("location") || qt.includes("city")) {
+      p.preferredLocation = v;
+      const m = v.match(/\b([A-Z]{2})\b/) || v.match(/\b(Illinois|Texas|California|Florida|New York|Georgia|Washington|Colorado|Ohio|Virginia|Pennsylvania|Minnesota|Arizona|Nevada|Oregon|Michigan)\b/i);
+      if (m) p.state = m[1];
+    } else if (qt.includes("industry") || qt.includes("sector")) {
+      p.industries = [...new Set([...(p.industries||[]), ...v.split(/,/).map(s=>s.trim())])];
+    } else if (qt.includes("senior") || qt.includes("level")) {
+      p.seniority = v;
+    }
+  });
+  return p;
+}
+
+// ── Summary page ─────────────────────────────────────────────
+function buildSummaryPage(p) {
+  document.getElementById("sum-content").innerHTML = `
+    <div class="prof-card">
+      <div class="prof-av">👤</div>
+      <div style="flex:1;min-width:0">
+        <div class="prof-name">${esc(p.name||"Your Profile")}</div>
+        <div class="prof-role">${esc(p.titles?.[0]||p.targetTitles?.[0]||"QA Engineer")}</div>
+        <div class="tag-row">
+          <span class="tag b">📍 ${esc(p.preferredLocation||p.location||"US")}</span>
+          <span class="tag g">🌐 ${esc(p.workPreference||"Remote")}</span>
+          <span class="tag">${p.experienceYears||"?"} yrs exp</span>
+          ${(p.languages||[]).slice(0,2).map(l=>`<span class="tag">🗣 ${esc(l)}</span>`).join("")}
+        </div>
+      </div>
+    </div>
+
+    ${p.summary?`<div class="sum-quote">"${esc(p.summary)}"</div>`:""}
+
+    <div class="sum-grid">
+      <div class="scard">
+        <div class="scard-ttl">🔧 Skills</div>
+        <div class="chips">${(p.skills||[]).slice(0,15).map(s=>`<span class="chip hi">${esc(s)}</span>`).join("")}</div>
+      </div>
+      <div class="scard">
+        <div class="scard-ttl">📋 Details</div>
+        <div class="info-row"><span class="il">Experience</span><span class="iv">${p.experienceYears||"?"} years</span></div>
+        <div class="info-row"><span class="il">Location</span><span class="iv">${esc(p.preferredLocation||p.location||"US")}</span></div>
+        <div class="info-row"><span class="il">Work Pref</span><span class="iv">${esc(p.workPreference||"Any")}</span></div>
+        <div class="info-row"><span class="il">Country</span><span class="iv">${esc(p.country||"US")}</span></div>
+      </div>
+      <div class="scard">
+        <div class="scard-ttl">🎯 Target Roles</div>
+        <div class="chips">${[...(p.titles||[]),...(p.targetTitles||[])].slice(0,6).map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div>
+      </div>
+      <div class="scard">
+        <div class="scard-ttl">🏭 Industries &amp; 🗣 Languages</div>
+        <div class="chips" style="margin-bottom:10px">${(p.industries||[]).slice(0,5).map(x=>`<span class="chip">${esc(x)}</span>`).join("")}</div>
+        <div class="chips">${(p.languages||[]).map(l=>`<span class="chip hi">${esc(l)}</span>`).join("")}</div>
+      </div>
+      ${(p.education||[]).length?`
+      <div class="scard" style="grid-column:1/-1">
+        <div class="scard-ttl">🎓 Education</div>
+        <div class="chips">${(p.education||[]).map(e=>`<span class="chip">${esc(e)}</span>`).join("")}</div>
+      </div>`:""}
+    </div>`;
+}
+
+document.getElementById("find-btn").addEventListener("click", () => { goTo("jobs"); fetchJobs(); });
+
+// ── Fetch jobs ────────────────────────────────────────────────
+async function fetchJobs() {
+  const p = S.finalProfile;
+  document.getElementById("jh-title").textContent = `🎯 Jobs for ${p?.name||"you"}`;
+  document.getElementById("jh-sub").textContent = `${p?.preferredLocation||p?.state||"US"} · ${p?.workPreference||"Remote-first"} · scored by match`;
+
+  const msgs = [
+    `Searching local jobs in ${p?.state||"your state"}…`,
+    "Scanning remote boards…","Checking RSS feeds…","Scoring & ranking…"
+  ];
+  let mi = 0;
+  document.getElementById("jobs-grid").innerHTML = `<div class="loading-st"><div class="spin"></div><div class="spin-lbl" id="spin-lbl">${msgs[0]}</div></div>`;
+  const tick = setInterval(() => { mi=(mi+1)%msgs.length; const el=document.getElementById("spin-lbl"); if(el) el.textContent=msgs[mi]; }, 1800);
+
+  try {
+    const res = await fetch("/api/jobs", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ profile: S.profile, answers: S.answers, email: S.userEmail||null }),
+    });
+    clearInterval(tick);
+    if (!res.ok) { const e=await res.json().catch(()=>({})); throw new Error(e.error||"Job fetch failed"); }
+    const data = await res.json();
+    S.jobs = data.jobs || [];
+    S.finalProfile = data.profile || S.finalProfile;
+    updateStats();
+    renderJobs();
+    if (S.userEmail) {
+      document.getElementById("email-banner-txt").textContent = `Results also sent to ${S.userEmail}`;
+      document.getElementById("email-banner").classList.add("on");
+    }
+  } catch(err) {
+    clearInterval(tick);
+    document.getElementById("jobs-grid").innerHTML = `<div class="empty-st"><div class="ei">⚠️</div><p style="color:var(--red)">${esc(err.message)}</p></div>`;
+  }
+}
+
+function updateStats() {
+  const j = S.jobs;
+  const local  = j.filter(x=>x.score?.locationTier==="local").length;
+  const remote = j.filter(x=>x.score?.locationTier==="us_remote").length;
+  const top    = j.filter(x=>(x.score?.stars||0)>=4).length;
+  document.getElementById("stat-row").innerHTML = `
+    <div class="stat-pill"><strong>${j.length}</strong> Total</div>
+    <div class="stat-pill"><strong style="color:var(--green)">${top}</strong> Top Matches</div>
+    ${local?`<div class="stat-pill"><strong style="color:var(--yellow)">${local}</strong> Local</div>`:""}
+    <div class="stat-pill"><strong style="color:var(--blue)">${remote}</strong> Remote</div>`;
+}
+
+// ── Render jobs ───────────────────────────────────────────────
+function filtered() {
+  const q    = document.getElementById("j-search").value.toLowerCase().trim();
+  const sort = document.getElementById("j-sort").value;
+  const type = document.getElementById("j-type").value;
+  const star = document.getElementById("j-stars").value;
+  const loc  = document.getElementById("j-loc").value;
+
+  let jobs = [...S.jobs];
+  if (q) jobs = jobs.filter(j=>{
+    const b=`${j.title} ${j.company} ${j.description} ${j.source} ${(j.score?.reasons||[]).join(" ")}`.toLowerCase();
+    return b.includes(q);
+  });
+  if (type!=="all") jobs=jobs.filter(j=>{
+    const t=(j.type||"").toLowerCase();
+    if(type==="remote") return t.includes("remote");
+    if(type==="hybrid") return t.includes("hybrid");
+    if(type==="onsite") return !t.includes("remote")&&!t.includes("hybrid");
+    return true;
+  });
+  if (star!=="all") jobs=jobs.filter(j=>(j.score?.stars||0)===parseInt(star));
+  if (loc!=="all")  jobs=jobs.filter(j=>j.score?.locationTier===loc);
+
+  const to={local:0,remote:1,national:2,international:3};
+  jobs.sort((a,b)=>{
+    if(sort==="location"){const d=(to[a.score?.locationTier]??3)-(to[b.score?.locationTier]??3);return d!==0?d:(b.score?.stars||0)-(a.score?.stars||0);}
+    if(sort==="score")  return (b.score?.stars||0)-(a.score?.stars||0);
+    if(sort==="date")   return new Date(b.posted||0)-new Date(a.posted||0);
+    if(sort==="title")  return (a.title||"").localeCompare(b.title||"");
+    return 0;
+  });
+  return jobs;
+}
+
+function renderJobs() {
+  const jobs = filtered();
+  document.getElementById("j-count").textContent = `${jobs.length} job${jobs.length!==1?"s":""}`;
+  const grid = document.getElementById("jobs-grid");
+  if (!jobs.length) { grid.innerHTML=`<div class="empty-st"><div class="ei">🔍</div><p>No jobs match your filters.</p></div>`; return; }
+
+  const sort = document.getElementById("j-sort").value;
+  let html = "";
+
+  if (sort==="location") {
+    const secs=[
+      {tier:"local",        label:`📍 Local — ${S.finalProfile?.state||"Your State"}`},
+      {tier:"us_remote", label:"🌐 US Remote"},
+      {tier:"us_national", label:"🇺🇸 Other US States"},
+      {tier:"international",label:"🌍 International"},
+    ];
+    let idx=0;
+    secs.forEach(sec=>{
+      const g=jobs.filter(j=>j.score?.locationTier===sec.tier);
+      if(!g.length)return;
+      html+=`<div class="sec-div"><span class="sec-lbl">${sec.label}</span><hr class="sec-line"/></div>`;
+      g.forEach(j=>{html+=jCard(j,idx++);});
+    });
+  } else {
+    jobs.forEach((j,i)=>{html+=jCard(j,i);});
+  }
+  grid.innerHTML=html;
+}
+
+function jCard(job, idx) {
+  const s    = job.score?.stars||0;
+  const tier = job.score?.locationTier||"remote";
+  const why  = (job.score?.reasons||[]).join(" · ");
+  const delay= Math.min(idx*22,480);
+  const ml   = MATCH_LABELS[s]||"Low";
+  const mc   = `m${s}`;
+
+  const tierTag = {
+    local:        `<span class="jtag jt-local">📍 Local</span>`,
+    us_remote: `<span class="jtag jt-remote">🌐 US Remote</span>`,
+    remote: `<span class="jtag jt-remote">🌐 Remote</span>`,
+    us_national: `<span class="jtag jt-national">🇺🇸 US National</span>`,
+    latam: `<span class="jtag" style="background:rgba(34,197,94,.1);color:#4ade80;">🌎 LATAM</span>`,
+    europe: `<span class="jtag" style="background:rgba(59,130,246,.1);color:#60a5fa;">🇪🇺 Europe</span>`,
+    international: `<span class="jtag jt-intl">🌍 Intl</span>`,
+  }[tier]||"";
+
+  const typeTag = (()=>{
+    const t=(job.type||"").toLowerCase();
+    if(t.includes("hybrid"))  return `<span class="jtag jt-hybrid">🔀 Hybrid</span>`;
+    if(t.includes("remote"))  return `<span class="jtag jt-remote">🌐 Remote</span>`;
+    return `<span class="jtag" style="background:rgba(107,114,128,.1);color:#9ca3af;">🏢 On-site</span>`;
+  })();
+
+  const sc = SRC_COLORS[job.source]||"#6b7280";
+  const starsHtml = Array.from({length:5},(_,i)=>`<span class="star ${i<s?"sf":"se"}">${i<s?"★":"☆"}</span>`).join("");
+
+  return `
+<article class="jcard" data-stars="${s}" style="animation-delay:${delay}ms">
+  <div class="jc-top">
+    <div class="jc-tg">
+      <div class="jc-title">${esc(job.title)}</div>
+      <div class="jc-co">${esc(job.company||"")}${job.location?` · 📍 ${esc(job.location)}`:""}</div>
+    </div>
+    <span class="mbadge ${mc}">${ml}</span>
+  </div>
+  <div class="jc-tags">
+    ${tierTag}${typeTag}
+    <span class="jtag jt-src" style="background:${sc}22;color:${sc};">${esc(job.source)}</span>
+  </div>
+  <div class="jc-stars">
+    <div class="star-row">${starsHtml}</div>
+    ${why?`<div class="star-why">${esc(why)}</div>`:""}
+  </div>
+  <p class="jc-desc">${esc(job.description||"")}</p>
+  <div class="jc-foot">
+    <span class="jc-date">📅 ${fmtDate(job.posted)}</span>
+    <a href="${esc(job.url||"#")}" target="_blank" rel="noopener" class="apply">
+      View Job
+      <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2.5 9.5l7-7M4 2.5h5.5v5.5"/></svg>
+    </a>
+  </div>
+</article>`;
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function esc(s){ return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function fmtBytes(b){ if(b<1024)return b+" B"; if(b<1048576)return(b/1024).toFixed(1)+" KB"; return(b/1048576).toFixed(1)+" MB"; }
+function fmtDate(s){
+  try{
+    const d=new Date(s); if(isNaN(d))return"Recent";
+    const df=Math.floor((Date.now()-d)/86400000);
+    if(df===0)return"Today"; if(df===1)return"Yesterday"; if(df<7)return df+"d ago";
+    return d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  }catch{return"Recent";}
+}
+function showErr(id,msg){ const e=document.getElementById(id); e.textContent=msg; e.classList.add("on"); }
+function hideErr(id){ const e=document.getElementById(id); e.textContent=""; e.classList.remove("on"); }
+
+["j-search","j-sort","j-type","j-stars","j-loc"].forEach(id=>{
+  document.getElementById(id)?.addEventListener("input",renderJobs);
+  document.getElementById(id)?.addEventListener("change",renderJobs);
+});
+
+function restart(){
+  S={file:null,profile:null,questions:[],answers:{},finalProfile:null,jobs:[],userEmail:""};
+  document.getElementById("fc").classList.remove("on");
+  document.getElementById("fi").value="";
+  document.getElementById("analyze-btn").disabled=true;
+  document.getElementById("user-email").value="";
+  hideErr("up-err"); hideProg();
+  document.getElementById("email-banner").classList.remove("on");
+  goTo("upload");
+}
+document.getElementById("restart-sum").addEventListener("click",restart);
+document.getElementById("restart-jobs").addEventListener("click",restart);
+</script>
+</body>
+</html>
