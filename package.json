@@ -1,0 +1,18 @@
+{
+  "name": "job-hunter-public",
+  "version": "1.0.0",
+  "description": "Public AI job matcher — resume upload, Gemini analysis, Resend email delivery",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step needed'"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "fast-xml-parser": "^4.3.6",
+    "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  },
+  "engines": { "node": ">=18" }
+}
