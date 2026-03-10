@@ -1,9 +1,8 @@
 /**
  * netlify/functions/jobs.js
  * POST /api/jobs
- * Accepts { profile, answers, email }
- * Returns scored, location-ordered job list.
- * Also fires the send-email function async if email is provided.
+ * Scrapes job sources, scores results, returns them + triggers email.
+ * Returns detailed error info so frontend can show what happened.
  */
 
 const { scrapeForProfile } = require("../../src/scraper");
@@ -26,26 +25,43 @@ exports.handler = async (event) => {
 
     const finalProfile = answers ? mergeAnswers(profile, answers) : profile;
 
-    // Scrape all sources
-    const jobs = await scrapeForProfile(finalProfile);
+    console.log("📋 Profile state:", finalProfile.state);
+    console.log("📋 Profile titles:", finalProfile.titles);
+    console.log("📋 Profile skills:", (finalProfile.skills || []).slice(0, 5));
 
-    // Fire email async — don't wait for it to not block the response
-    if (email && process.env.RESEND_API_KEY) {
+    // Scrape with full source diagnostics
+    const { jobs, sourceDiagnostics } = await scrapeForProfile(finalProfile);
+
+    console.log("📊 Source results:", JSON.stringify(sourceDiagnostics));
+    console.log("✅ Total jobs after scoring:", jobs.length);
+
+    // Fire email async if provided
+    if (email && process.env.RESEND_API_KEY && jobs.length > 0) {
       const baseUrl = process.env.URL || process.env.DEPLOY_URL || "";
       fetch(`${baseUrl}/.netlify/functions/send-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile: finalProfile, jobs, email }),
-      }).catch(e => console.error("email fire failed:", e.message));
+      }).catch(e => console.error("email error:", e.message));
     }
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ jobs, profile: finalProfile, total: jobs.length, generated: new Date().toISOString() }),
+      body: JSON.stringify({
+        jobs,
+        profile: finalProfile,
+        total: jobs.length,
+        sourceDiagnostics,
+        generated: new Date().toISOString(),
+      }),
     };
   } catch (err) {
-    console.error("jobs error:", err.message);
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message || "Failed to fetch jobs" }) };
+    console.error("jobs function error:", err.message, err.stack);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: err.message || "Failed to fetch jobs" }),
+    };
   }
 };
