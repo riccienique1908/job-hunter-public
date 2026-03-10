@@ -4,14 +4,14 @@
  * Accepts multipart resume upload, extracts text, calls Gemini to parse
  * profile AND generate questions in ONE single API call to minimize quota usage.
  *
- * Model: gemini-2.5-flash-lite-preview-06-17
+ * Model: gemini-2.0-flash
  * Free tier: 15 RPM, 1,000 requests/day — highest free quota available (Mar 2026)
  */
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // gemini-2.5-flash-lite has the most generous free tier (1,000 req/day)
-const GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17";
+const GEMINI_MODEL = "gemini-2.0-flash";
 
 exports.handler = async (event) => {
   const headers = {
